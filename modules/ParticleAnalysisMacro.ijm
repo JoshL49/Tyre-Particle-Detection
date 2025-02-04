@@ -36,9 +36,25 @@ run("Set Scale...", "distance=0.732525 known=1 unit=um");
 // Analyze particles
 run("Analyze Particles...", "size=0-Infinity show=Overlay");
 
+// Add labels (if you want to label the particles)
 run("Labels...", "color=pink font=36 show");
 
-// Save results
+// Make sure the directory exists
+outputDir = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Processed_Images\\";
+File.makeDirectory(outputDir);  // Create the directory if it doesn't exist
+
+// The name of the image file to save
+outputImagePath = outputDir + imageName + "_processed_with_overlays.jpg";
+
+// Save the image as a JPEG
+saveAs("Jpeg", outputImagePath);
+print("Processed image with overlays saved to: " + outputImagePath);
+
+// Save results (CSV for particle analysis)
 newFileName = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Tyre Particle Data\\" + imageName + ".csv";
 saveAs("Results", newFileName);
-print("Saved to: " + newFileName);
+print("Saved particle analysis results to: " + newFileName);
+
+// Save the filename to a .txt file for Python to read
+filenamePath = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\filename.txt";
+File.saveString(newFileName, filenamePath);

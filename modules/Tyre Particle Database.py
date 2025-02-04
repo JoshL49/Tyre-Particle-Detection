@@ -2,7 +2,7 @@ import sqlite3
 import pandas as pd
 
 # Load ImageJ CSV file
-df = pd.read_csv("Tyre Particle Data\\WP40-1-4X-005.csv")
+df = pd.read_csv("../Tyre Particle Data/WP40-1-4X-005.csv")
 
 # Ask user for tyre particle IDs (e.g., manually determined from ImageJ)
 tyre_particle_ids = [4, 3, 9, 5, 12, 16, 19, 24, 23, 22, 25, 31, 36]  # Example - replace with actual values
@@ -16,7 +16,7 @@ non_tyre_particles = df[~df['ID'].isin(tyre_particle_ids)]  # Filter the particl
 
 # --- Tyre Particles Database ---
 # Connect to SQLite database for tyre particles (or create one)
-conn = sqlite3.connect("tyre_particles.db")
+conn = sqlite3.connect("../tyre_particles.db")
 cursor = conn.cursor()
 
 # Create table for tyre particles if it doesn't exist
@@ -48,7 +48,7 @@ print("Tyre particle dimensions saved to tyre_particles.db!")
 
 # --- Non-Tyre Particles Database ---
 # Connect to SQLite database for non-tyre particles (or create one)
-conn = sqlite3.connect("non_tyre_particles.db")
+conn = sqlite3.connect("../non_tyre_particles.db")
 cursor = conn.cursor()
 
 # Create table for non-tyre particles if it doesn't exist
@@ -81,7 +81,7 @@ print("Non-tyre particle dimensions saved to non_tyre_particles.db!")
 # Optional: Check contents of both databases
 
 # Connect to the tyre particles database
-conn = sqlite3.connect('tyre_particles.db')
+conn = sqlite3.connect('../tyre_particles.db')
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM TyreParticles")
 tyre_rows = cursor.fetchall()
@@ -91,7 +91,7 @@ for row in tyre_rows:
 conn.close()
 
 # Connect to the non-tyre particles database
-conn = sqlite3.connect('non_tyre_particles.db')
+conn = sqlite3.connect('../non_tyre_particles.db')
 cursor = conn.cursor()
 cursor.execute("SELECT * FROM NonTyreParticles")
 non_tyre_rows = cursor.fetchall()

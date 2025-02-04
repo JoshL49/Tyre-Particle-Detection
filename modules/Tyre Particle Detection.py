@@ -4,15 +4,15 @@ from scipy.spatial import distance
 import numpy as np
 
 # Load new ImageJ CSV file (new particles)
-new_df = pd.read_csv("Tyre Particle Data\\WP40-1-4X-006.csv")
+new_df = pd.read_csv("../Tyre Particle Data/WP40-1-4X-006.csv")
 
 # Load non-tyre particle data from the database
-conn = sqlite3.connect("non_tyre_particles.db")
+conn = sqlite3.connect("../non_tyre_particles.db")
 non_tyre_df = pd.read_sql_query("SELECT * FROM NonTyreParticles", conn)
 conn.close()
 
 # Load tyre particle data from the database
-conn = sqlite3.connect("tyre_particles.db")
+conn = sqlite3.connect("../tyre_particles.db")
 tyre_df = pd.read_sql_query("SELECT * FROM TyreParticles", conn)
 conn.close()
 

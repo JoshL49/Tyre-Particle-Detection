@@ -5,11 +5,14 @@ from scipy.spatial import distance
 import numpy as np
 import os
 
-output_txt = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\output.txt"
+output_txt = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\filename.txt"
 
 # Read the CSV filename from output.txt
 with open(output_txt, "r") as file:
     csv_filename = file.read().strip()
+
+# Display the CSV filename being opened
+print(f"Opening CSV file: {csv_filename}")
 
 # Ensure the file exists before reading
 if not os.path.exists(csv_filename):
@@ -235,17 +238,13 @@ if misidentified_particles:
 print("Identification and transfer complete!")
 
 # Define the CSV file name
-csv_filename = "../Distributions/WP40-4X/WP40-4X-1.csv"
+csv_filename = "../Distributions/WP150-4X/WP150-4X-1.csv"
 
 with open("../csv_filename.txt", "w") as f:
     f.write(csv_filename)
 
 # Ask if the user wants to save new tyre particles to a CSV
 save_to_csv = input("Do you want to save the new tyre particles to a CSV? (yes/no): ").strip().lower()
-
-if save_to_csv == "yes":
-    # Filter new tyre particles from the dataset
-    new_tyre_particles = new_df.iloc[[p - 1 for p in identified_tyre_particles]]
 
 if save_to_csv == "yes":
     # Filter new tyre particles from the dataset

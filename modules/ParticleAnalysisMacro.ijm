@@ -40,13 +40,14 @@ run("Analyze Particles...", "size=0-Infinity show=Overlay");
 run("Labels...", "color=pink font=36 show");
 
 // Make sure the directory exists
-outputDir = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Processed_Images\\";
+outputDir = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Processed_Images\\Winter\\P150\\4X";
 File.makeDirectory(outputDir);  // Create the directory if it doesn't exist
 
 // The name of the image file to save
 outputImagePath = outputDir + imageName + "_processed_with_overlays.jpg";
 
 // Save the image as a JPEG
+wait(1000); // Wait 1 second before saving
 saveAs("Jpeg", outputImagePath);
 print("Processed image with overlays saved to: " + outputImagePath);
 

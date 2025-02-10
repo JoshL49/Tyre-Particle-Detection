@@ -36,7 +36,7 @@ def run_imagej_and_detection():
 
         if proceed == "yes":
             # Run DetectionV3.py if the user agrees
-            print("Running DetectionV3.py...")
+            print("Running DetectionV4.py...")
             detection_script = os.path.join(modules_folder, "DetectionV3.py")
             subprocess.run([venv_python, detection_script], check=True)
             print("Detection script executed successfully.")

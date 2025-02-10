@@ -5,11 +5,65 @@ from scipy.spatial import distance
 import numpy as np
 import os
 
-# Step 2: Load the newly generated CSV file from ImageJ
-# Make sure the new ImageJ CSV file is generated in the directory you expect
-new_df = pd.read_csv("../Tyre Particle Data/WP40-1-4X-011.csv")
+output_txt = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\filename.txt"
 
-# Step 3: Continue with your original code to work with databases and identify particles
+# Read the CSV filename from output.txt
+with open(output_txt, "r") as file:
+    csv_filename = file.read().strip()
+
+# Display the CSV filename being opened
+print(f"Opening CSV file: {csv_filename}")
+
+# Ensure the file exists before reading
+if not os.path.exists(csv_filename):
+    raise FileNotFoundError(f"CSV file not found: {csv_filename}")
+
+# Load the CSV
+new_df = pd.read_csv(csv_filename)
+print(new_df.head())  # Display first few rows for verification
+
+# Create the NonTyreParticles table if it doesn't exist
+conn = sqlite3.connect("../non_tyre_particles.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS NonTyreParticles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area REAL,
+        mean REAL,
+        perimeter REAL,
+        circularity REAL,
+        feret REAL,
+        minferet REAL,
+        ar REAL,
+        round REAL,
+        solidity REAL
+    )
+""")
+conn.commit()  # Commit the changes after table creation
+conn.close()
+
+# Create the TyreParticles table if it doesn't exist
+conn = sqlite3.connect("../tyre_particles.db")
+cursor = conn.cursor()
+
+cursor.execute("""
+    CREATE TABLE IF NOT EXISTS TyreParticles (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        area REAL,
+        mean REAL,
+        perimeter REAL,
+        circularity REAL,
+        feret REAL,
+        minferet REAL,
+        ar REAL,
+        round REAL,
+        solidity REAL
+    )
+""")
+conn.commit()  # Commit the changes after table creation
+conn.close()
+
 # Load non-tyre particle data from the database
 conn = sqlite3.connect("../non_tyre_particles.db")
 non_tyre_df = pd.read_sql_query("SELECT * FROM NonTyreParticles", conn)
@@ -23,10 +77,12 @@ conn.close()
 # Convert to NumPy arrays for distance calculation
 non_tyre_features = non_tyre_df.drop(columns=["id"]).values
 tyre_features = tyre_df.drop(columns=["id"]).values
-new_features = new_df[["Area", "Perim.", "Circ.", "Feret", "MinFeret", "AR", "Round", "Solidity"]].values
+new_features = new_df[["Area", "Mean", "Perim.", "Circ.", "Feret", "MinFeret", "AR", "Round", "Solidity"]].values
 
 # Define feature columns in lowercase
-feature_columns = ['area', 'perimeter', 'circularity', 'feret', 'minferet', 'ar', 'round', 'solidity']
+feature_columns = ['area', 'mean', 'perimeter', 'circularity', 'feret', 'minferet', 'ar', 'round', 'solidity']
+
+print(new_df.columns)  # This will show you the order of the columns
 
 # Define tyre and non-tyre conditions (based on feature ranges)
 conditions = {
@@ -35,13 +91,17 @@ conditions = {
         'circularity_max': 0.8, 'feret_min': 50,
         'ar_min': 1.2, 'ar_max': 3, 'roundness_max': 0.6, 'solidity_max': 0.9
     },
-    'non_tyre': {
-        'area_max': 1000, 'circularity_min': 0.8, 'feret_max': 50,
-        'ar_max': 1.2, 'ar_min': 3, 'roundness_min': 0.6, 'solidity_min': 0.9
-    }
 }
 
-threshold_score = 4  # Particles need a score of 4 or more to be classified as tyre
+threshold_score = 5  # Particles need a score of 4 or more to be classified as tyre
+
+similarity_threshold = 1.5  # Maximum distance for classification as tyre (smaller means stricter)
+
+# Define a minimum solidity threshold to ignore transparent particles
+solidity_threshold = 0.8  # Adjust based on your data
+
+# Define the Mean Gray Value threshold
+mean_gray_threshold = 200  # Adjust as needed
 
 identified_tyre_particles = []
 identified_non_tyre_particles = []
@@ -50,35 +110,68 @@ identified_non_tyre_particles = []
 # Function to calculate a score based on matching conditions
 def calculate_score(particle, conditions):
     score = 0
-    area, perimeter, circularity, feret, minferet, ar, roundness, solidity = particle
-
-    # Tyre conditions (points for each match)
-    if conditions['tyre']['area_min'] < area < conditions['tyre']['area_max']:
+    if conditions['area_min'] <= particle[0] <= conditions['area_max']:
         score += 1
-    if conditions['tyre']['circularity_max'] > circularity:
+    if particle[3] <= conditions['circularity_max']:
         score += 1
-    if conditions['tyre']['feret_min'] < feret:
+    if particle[5] >= conditions['feret_min']:
         score += 1
-    if conditions['tyre']['ar_min'] <= ar <= conditions['tyre']['ar_max']:
+    if conditions['ar_min'] <= particle[6] <= conditions['ar_max']:
         score += 1
-    if conditions['tyre']['roundness_max'] > roundness:
+    if particle[7] <= conditions['roundness_max']:
         score += 1
-    if conditions['tyre']['solidity_max'] > solidity:
+    if particle[8] <= conditions['solidity_max']:
         score += 1
-
     return score
 
 
-# Check each particle and calculate its score
+# Function to classify particles based on Solidity threshold
+def classify_by_solidity(particle, solidity_threshold):
+    print(f"Particle data: {particle}")  # Print the whole particle array for inspection
+    solidity = particle[8]  # Index 8 is 'Solidity'
+    print(f"Checking particle with solidity: {solidity}")  # Print the specific 'solidity' value
+    if solidity < solidity_threshold:
+        return "non_tyre"
+    return "potential_tyre"
+
+# Function to classify based on similarity to known tyre/non-tyre particles
+def classify_by_similarity(particle, tyre_features, non_tyre_features, similarity_threshold):
+    particle = np.array(particle).reshape(1, -1)
+
+    # Calculate Euclidean distance to known tyre and non-tyre particles
+    tyre_dist = np.mean([distance.euclidean(particle, t) for t in tyre_features]) if len(tyre_features) > 0 else float(
+        'inf')
+    non_tyre_dist = np.mean([distance.euclidean(particle, n) for n in non_tyre_features]) if len(
+        non_tyre_features) > 0 else float('inf')
+
+    # If the Euclidean distance to tyre features is smaller than non-tyre features and below the similarity threshold, classify as tyre
+    if tyre_dist < non_tyre_dist and tyre_dist < similarity_threshold:
+        return "tyre"
+    return "non_tyre"
+
+# Process each particle
 for i, particle in enumerate(new_features):
-    score = calculate_score(particle, conditions)
+    # First classify by Solidity
+    classification = classify_by_solidity(particle, solidity_threshold)
 
-    if score >= threshold_score:
-        identified_tyre_particles.append(i + 1)
+    if classification == "non_tyre":
+        identified_non_tyre_particles.append(i + 1)  # Mark as non-tyre if it failed the solidity threshold
     else:
-        identified_non_tyre_particles.append(i + 1)
+        # If potential tyre, calculate the score using the other thresholds
+        score = calculate_score(particle, conditions['tyre'])
 
-# Print the identified particles
+        if score >= threshold_score:
+            # Now apply similarity-based classification if the score passes
+            similarity_classification = classify_by_similarity(particle, tyre_features, non_tyre_features,
+                                                               similarity_threshold)
+            if similarity_classification == "tyre":
+                identified_tyre_particles.append(i + 1)  # Mark as tyre if it matches the similarity criteria
+            else:
+                identified_non_tyre_particles.append(i + 1)  # Otherwise, mark as non-tyre
+        else:
+            identified_non_tyre_particles.append(i + 1)  # Mark as non-tyre if the score is insufficient
+
+# Output the results
 print(f"Identified tyre particles: {identified_tyre_particles}")
 print(f"Identified non-tyre particles: {identified_non_tyre_particles}")
 
@@ -98,7 +191,6 @@ if misidentified_tyre_particles or misidentified_non_tyre_particles:
         misidentified_str = input("Enter the misidentified particle numbers, separated by commas: ").strip()
         misidentified_particles = list(map(int, misidentified_str.split(',')))
 
-
 # Function to transfer particles to the correct database
 def transfer_particles(particle_ids, target_db_name, target_table, auto_transfer=False):
     # Connect to the target database
@@ -110,6 +202,7 @@ def transfer_particles(particle_ids, target_db_name, target_table, auto_transfer
     CREATE TABLE IF NOT EXISTS {target_table} (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         area REAL,
+        mean REAL,
         perimeter REAL,
         circularity REAL,
         feret REAL,
@@ -167,24 +260,7 @@ if misidentified_particles:
 
 print("Identification and transfer complete!")
 
-import os
-
 # Define the CSV file name
-csv_filename = "../Distributions/WP40-4X/WP40-4X-1.csv"
+csv_filename = "../Distributions/WP150-4X/WP150-4X-1.csv"
 
-# Ask if the user wants to save new tyre particles to a CSV
-save_to_csv = input("Do you want to save the new tyre particles to a CSV? (yes/no): ").strip().lower()
-
-if save_to_csv == "yes":
-    # Filter new tyre particles from the dataset
-    new_tyre_particles = new_df.iloc[[p - 1 for p in identified_tyre_particles]]
-
-    # Check if the file exists to determine whether to write headers
-    file_exists = os.path.isfile(csv_filename)
-
-    # Save new tyre particles to the CSV, appending if the file already exists
-    new_tyre_particles.to_csv(csv_filename, mode='a', header=not file_exists, index=False)
-
-    print(f"New tyre particles saved to {csv_filename}.")
-else:
-    print("Tyre particles were not saved to a CSV.")
+with open

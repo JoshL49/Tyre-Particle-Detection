@@ -18,26 +18,32 @@ channel4 = "C4-" + imageName + ".tiff";
 run("Split Channels");
 
 run("Make Composite", "display=Color");
-
 run("Channels Tool...");
-
 run("Merge Channels...", "c1=" + channel1 + " c2=" + channel2 + " c3=" + channel3 + " c4=" + channel4);
 
 // Convert image to 8-bit
 run("8-bit");
 
 // Apply a threshold
-setThreshold(0, 150);
-run("Convert to Mask");
+run("Threshold...");  // Opens the threshold dialog
+setAutoThreshold("Otsu dark");  // Uses Otsu's method with a dark background
+setOption("BlackBackground", false);  // Ensure black foreground, white background
+run("Convert to Mask");  // Convert to a binary mask
+
+// Invert the image
+run("Invert");
 
 // Set scale
 run("Set Scale...", "distance=0.732525 known=1 unit=um");
 
-// Analyze particles
-run("Analyze Particles...", "size=0-Infinity show=Overlay");
+// Set measurements to include Mean Gray Value
+run("Set Measurements...", "area mean perimeter shape feret's diameter");
+
+// Analyze particles and save the results
+run("Analyze Particles...", "size=0-Infinity show=Overlay add");
 
 // Add labels (if you want to label the particles)
-run("Labels...", "color=pink font=36 show");
+run("Labels...", "color=red font=36 show");
 
 // Make sure the directory exists
 outputDir = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Processed_Images\\Winter\\P150\\4X";

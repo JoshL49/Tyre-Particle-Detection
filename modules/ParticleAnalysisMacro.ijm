@@ -49,13 +49,11 @@ run("Labels...", "color=red font=36 show");
 outputDir = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Processed_Images\\Winter\\P150\\4X";
 File.makeDirectory(outputDir);  // Create the directory if it doesn't exist
 
-// The name of the image file to save
-outputImagePath = outputDir + imageName + "_processed_with_overlays.jpg";
-
-// Save the image as a JPEG
+// Save the processed image as a JPEG file
+outputImagePathJpeg = outputDir + imageName + "_processed.jpg";
 wait(1000); // Wait 1 second before saving
-saveAs("Jpeg", outputImagePath);
-print("Processed image with overlays saved to: " + outputImagePath);
+saveAs("Jpeg", outputImagePathJpeg);
+print("Processed image saved as JPEG: " + outputImagePathJpeg);
 
 // Save results (CSV for particle analysis)
 newFileName = "C:\\Users\\user\\PycharmProjects\\Tyre Particle Detection\\Tyre Particle Data\\" + imageName + ".csv";

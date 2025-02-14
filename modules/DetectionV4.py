@@ -128,24 +128,17 @@ def calculate_score(particle, conditions):
 
 # Function to classify based on similarity
 def classify_by_similarity(particle, tyre_features, non_tyre_features, similarity_threshold):
-    particle = np.array(particle).reshape(1, -1)
+    # Ensure both are flattened to 1D vectors
+    tyre_dist = np.mean([distance.euclidean(particle.flatten(), t.flatten()) for t in tyre_features])
+    non_tyre_dist = np.mean([distance.euclidean(particle.flatten(), nt.flatten()) for nt in non_tyre_features])
 
-    # Calculate Euclidean distance to known tyre and non-tyre particles, but only if the arrays are not empty
-    if len(tyre_features) > 0:
-        tyre_dist = np.mean([distance.euclidean(particle, t) for t in tyre_features])
+    if tyre_dist < similarity_threshold:
+        return 'Tyre'
+    elif non_tyre_dist < similarity_threshold:
+        return 'Non-Tyre'
     else:
-        tyre_dist = float('inf')  # Assign a large number if empty
+        return 'Unknown'
 
-    if len(non_tyre_features) > 0:
-        non_tyre_dist = np.mean([distance.euclidean(particle, n) for n in non_tyre_features])
-    else:
-        non_tyre_dist = float('inf')  # Assign a large number if empty
-
-    # If the Euclidean distance to tyre features is less than non-tyre AND below similarity threshold, classify as tyre
-    if tyre_dist < non_tyre_dist and tyre_dist < similarity_threshold:
-        return "tyre"
-    else:
-        return "non_tyre"
 
 # Check each particle
 for i, particle in enumerate(new_features):
